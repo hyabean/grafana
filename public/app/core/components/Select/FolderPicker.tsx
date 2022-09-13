@@ -107,7 +107,7 @@ export function FolderPicker(props: Props) {
         initialTitle !== '' &&
         !options.find((option) => option.label === initialTitle)
       ) {
-        options.unshift({ label: initialTitle, value: initialFolderId });
+        Boolean(initialTitle) && options.unshift({ label: initialTitle, value: initialFolderId });
       }
       return options;
     },
