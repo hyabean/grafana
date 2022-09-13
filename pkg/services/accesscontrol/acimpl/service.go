@@ -8,14 +8,16 @@ import (
 	"github.com/grafana/grafana/pkg/infra/metrics"
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
 	"github.com/grafana/grafana/pkg/services/accesscontrol/api"
+	"github.com/grafana/grafana/pkg/services/accesscontrol/database"
 	"github.com/grafana/grafana/pkg/services/accesscontrol/ossaccesscontrol"
+	"github.com/grafana/grafana/pkg/services/sqlstore"
 	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func ProvideService(cfg *setting.Cfg, store accesscontrol.Store, routeRegister routing.RouteRegister) (*Service, error) {
-	service := ProvideOSSService(cfg, store)
+func ProvideService(cfg *setting.Cfg, store sqlstore.Store, routeRegister routing.RouteRegister) (*Service, error) {
+	service := ProvideOSSService(cfg, database.ProvideService(store))
 
 	if !accesscontrol.IsDisabled(cfg) {
 		api.NewAccessControlAPI(routeRegister, service).RegisterAPIEndpoints()
@@ -27,7 +29,7 @@ func ProvideService(cfg *setting.Cfg, store accesscontrol.Store, routeRegister r
 	return service, nil
 }
 
-func ProvideOSSService(cfg *setting.Cfg, store accesscontrol.Store) *Service {
+func ProvideOSSService(cfg *setting.Cfg, store store) *Service {
 	s := &Service{
 		cfg:   cfg,
 		store: store,
@@ -38,11 +40,16 @@ func ProvideOSSService(cfg *setting.Cfg, store accesscontrol.Store) *Service {
 	return s
 }
 
+type store interface {
+	GetUserPermissions(ctx context.Context, query accesscontrol.GetUserPermissionsQuery) ([]accesscontrol.Permission, error)
+	DeleteUserPermissions(ctx context.Context, orgID, userID int64) error
+}
+
 // Service is the service implementing role based access control.
 type Service struct {
 	log           log.Logger
 	cfg           *setting.Cfg
-	store         accesscontrol.Store
+	store         store
 	registrations accesscontrol.RegistrationList
 	roles         map[string]*accesscontrol.RoleDTO
 }

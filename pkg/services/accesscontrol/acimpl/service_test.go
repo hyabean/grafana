@@ -57,7 +57,7 @@ func TestUsageMetrics(t *testing.T) {
 
 			s, errInitAc := ProvideService(
 				cfg,
-				database.ProvideService(sqlstore.InitTestDB(t)),
+				sqlstore.InitTestDB(t),
 				routing.NewRouteRegister(),
 			)
 			require.NoError(t, errInitAc)
